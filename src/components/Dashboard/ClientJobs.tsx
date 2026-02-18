@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, Job, Bid, Profile } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { createJob, hireFreelancer } from '../../lib/edge-functions';
 import { Plus, Calendar, DollarSign } from 'lucide-react';
 
 export default function ClientJobs({ onStatsUpdate }: { onStatsUpdate: () => void }) {
@@ -46,10 +47,8 @@ export default function ClientJobs({ onStatsUpdate }: { onStatsUpdate: () => voi
     setSubmitting(true);
     setError('');
 
-    const { error: jobError } = await supabase
-      .from('jobs')
-      .insert({
-        client_id: profile.id,
+    try {
+      await createJob({
         title,
         description,
         budget: parseFloat(budget),
@@ -57,9 +56,6 @@ export default function ClientJobs({ onStatsUpdate }: { onStatsUpdate: () => voi
         required_skills: skills.split(',').map(s => s.trim()).filter(Boolean),
       });
 
-    if (jobError) {
-      setError(jobError.message);
-    } else {
       setShowPostJob(false);
       setTitle('');
       setDescription('');
@@ -68,6 +64,8 @@ export default function ClientJobs({ onStatsUpdate }: { onStatsUpdate: () => voi
       setSkills('');
       fetchJobs();
       onStatsUpdate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to post job');
     }
 
     setSubmitting(false);
@@ -87,30 +85,14 @@ export default function ClientJobs({ onStatsUpdate }: { onStatsUpdate: () => voi
   };
 
   const handleHireFreelancer = async (bidId: string, freelancerId: string, jobId: string) => {
-    const { error: updateError } = await supabase
-      .from('jobs')
-      .update({
-        status: 'in_progress',
-        hired_freelancer_id: freelancerId,
-      })
-      .eq('id', jobId);
-
-    if (!updateError) {
-      await supabase
-        .from('bids')
-        .update({ status: 'accepted' })
-        .eq('id', bidId);
-
-      await supabase
-        .from('bids')
-        .update({ status: 'rejected' })
-        .eq('job_id', jobId)
-        .neq('id', bidId);
-
+    try {
+      await hireFreelancer(bidId);
       setSelectedJob(null);
       fetchJobs();
       onStatsUpdate();
       alert('Freelancer hired successfully!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to hire freelancer');
     }
   };
 

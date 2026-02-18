@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, Job, Profile } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { createBid } from '../../lib/edge-functions';
 import { Calendar, DollarSign } from 'lucide-react';
 
 export default function FreelancerJobs() {
@@ -39,24 +40,21 @@ export default function FreelancerJobs() {
     setSubmitting(true);
     setError('');
 
-    const { error: bidError } = await supabase
-      .from('bids')
-      .insert({
+    try {
+      await createBid({
         job_id: selectedJob.id,
-        freelancer_id: profile.id,
         amount: parseFloat(bidAmount),
         proposal,
         delivery_time: parseInt(deliveryTime),
       });
 
-    if (bidError) {
-      setError(bidError.message);
-    } else {
       setSelectedJob(null);
       setBidAmount('');
       setProposal('');
       setDeliveryTime('');
       alert('Bid submitted successfully!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit bid');
     }
 
     setSubmitting(false);
