@@ -68,6 +68,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (typeof proposal !== 'string' || proposal.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Proposal cannot be empty' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')

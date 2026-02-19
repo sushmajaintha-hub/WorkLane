@@ -154,6 +154,12 @@ Deno.serve(async (req: Request) => {
       .eq('id', job.client_id)
       .maybeSingle();
 
+    const { data: jobTitle } = await supabase
+      .from('jobs')
+      .select('title')
+      .eq('id', bid.job_id)
+      .maybeSingle();
+
     const { data: rejectedBids } = await supabase
       .from('bids')
       .select('freelancer_id')
@@ -169,7 +175,7 @@ Deno.serve(async (req: Request) => {
               user_id: rejectedBid.freelancer_id,
               type: 'bid_accepted',
               title: 'Bid Not Selected',
-              message: `Your bid for "${job.status}" was not selected. Keep trying!`,
+              message: `Your bid for "${jobTitle?.title || 'the project'}" was not selected. Keep trying!`,
               related_job_id: bid.job_id,
             });
         }
